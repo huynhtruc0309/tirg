@@ -233,7 +233,7 @@ def train_loop(opt, logger, trainset, testset, model, optimizer):
             img2 = torch.from_numpy(img2).float()
             img2 = torch.autograd.Variable(img2).cuda()
             mods = [str(d['mod']['str']) for d in data]
-            mods = [t.decode('utf-8') for t in mods]
+            mods = [t for t in mods]
 
             # compute loss
             losses = []
@@ -258,7 +258,7 @@ def train_loop(opt, logger, trainset, testset, model, optimizer):
 
             # track losses
             for loss_name, loss_weight, loss_value in losses:
-                if not losses_tracking.has_key(loss_name):
+                if loss_name not in losses_tracking:
                     losses_tracking[loss_name] = []
                 losses_tracking[loss_name].append(float(loss_value))
 
@@ -292,7 +292,7 @@ def main():
 
     trainset, testset = load_dataset(opt)
     model, optimizer = create_model_and_optimizer(
-        opt, [t.decode('utf-8') for t in trainset.get_all_texts()])
+        opt, [t for t in trainset.get_all_texts()])
 
     train_loop(opt, logger, trainset, testset, model, optimizer)
     logger.close()

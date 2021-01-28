@@ -71,12 +71,12 @@ class CSSDataset(BaseDataset):
     self.img_path = path + '/images/'
     self.transform = transform
     self.split = split
-    self.data = np.load(path + '/css_toy_dataset_novel2_small.dup.npy').item()
+    self.data = np.load(path + '/css_toy_dataset_novel2_small.dup.npy', allow_pickle=True, encoding="latin1").item()
     self.mods = self.data[self.split]['mods']
     self.imgs = []
     for objects in self.data[self.split]['objects_img']:
       label = len(self.imgs)
-      if self.data[self.split].has_key('labels'):
+      if 'labels' in self.data[self.split]:
         label = self.data[self.split]['labels'][label]
       self.imgs += [{
           'objects': objects,
@@ -295,7 +295,7 @@ class Fashion200k(BaseDataset):
     caption2imgids = {}
     for i, img in enumerate(self.imgs):
       for c in img['captions']:
-        if not caption2id.has_key(c):
+        if c not in caption2id:
           id2caption[len(caption2id)] = c
           caption2id[c] = len(caption2id)
           caption2imgids[c] = []
@@ -309,7 +309,7 @@ class Fashion200k(BaseDataset):
       for w in c.split():
         p = c.replace(w, '')
         p = p.replace('  ', ' ').strip()
-        if not parent2children_captions.has_key(p):
+        if p not in parent2children_captions:
           parent2children_captions[p] = []
         if c not in parent2children_captions[p]:
           parent2children_captions[p].append(c)

@@ -63,13 +63,14 @@ class ImgTextCompositionBase(torch.nn.Module):
     assert (mod_img1.shape[0] == img2.shape[0] and
             mod_img1.shape[1] == img2.shape[1])
     if soft_triplet_loss:
-      return self.compute_soft_triplet_loss_(mod_img1, img2)
+      # return self.compute_soft_triplet_loss_(mod_img1, img2)
+      return self.compute_batch_based_classification_loss_(mod_img1, img2)
     else:
       return self.compute_batch_based_classification_loss_(mod_img1, img2)
 
   def compute_soft_triplet_loss_(self, mod_img1, img2):
     triplets = []
-    labels = range(mod_img1.shape[0]) + range(img2.shape[0])
+    labels = list(range(mod_img1.shape[0])) + list(range(img2.shape[0]))
     for i in range(len(labels)):
       triplets_i = []
       for j in range(len(labels)):
@@ -168,7 +169,6 @@ class Concat(ImgEncoderTextEncoderBase):
 
 class TIRG(ImgEncoderTextEncoderBase):
   """The TIGR model.
-
   The method is described in
   Nam Vo, Lu Jiang, Chen Sun, Kevin Murphy, Li-Jia Li, Li Fei-Fei, James Hays.
   "Composing Text and Image for Image Retrieval - An Empirical Odyssey"
@@ -201,7 +201,6 @@ class TIRG(ImgEncoderTextEncoderBase):
 
 class TIRGLastConv(ImgEncoderTextEncoderBase):
   """The TIGR model with spatial modification over the last conv layer.
-
   The method is described in
   Nam Vo, Lu Jiang, Chen Sun, Kevin Murphy, Li-Jia Li, Li Fei-Fei, James Hays.
   "Composing Text and Image for Image Retrieval - An Empirical Odyssey"
