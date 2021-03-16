@@ -16,7 +16,7 @@
 """Provides data for training and testing."""
 import numpy as np
 import PIL
-import skimage.io
+# import skimage.io
 import torch
 import json
 import torch.utils.data
@@ -331,8 +331,15 @@ class Fashion200k(BaseDataset):
         num_modifiable_imgs += 1
     print('Modifiable images', num_modifiable_imgs)
 
+  def find_modifiable(self):
+    for idx in range(0, len(self.imgs)):
+      if self.imgs[idx]['modifiable']:
+        return idx
+    return None
+
   def caption_index_sample_(self, idx):
     while not self.imgs[idx]['modifiable']:
+      print(idx)
       idx = np.random.randint(0, len(self.imgs))
 
     # find random target image (same parent)
@@ -372,6 +379,9 @@ class Fashion200k(BaseDataset):
     out['target_img_data'] = self.get_img(target_idx)
     out['target_caption'] = self.imgs[target_idx]['captions'][0]
     out['mod'] = {'str': mod_str}
+    out['source_path'] = self.img_path + self.imgs[idx]['file_path']
+    out['target_path'] = self.img_path + self.imgs[target_idx]['file_path']
+    
     return out
 
   def get_img(self, idx, raw_img=False):

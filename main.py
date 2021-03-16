@@ -39,9 +39,9 @@ def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', type=str, default='')
     parser.add_argument('--comment', type=str, default='test_notebook')
-    parser.add_argument('--dataset', type=str, default='css3d')
+    parser.add_argument('--dataset', type=str, default='fashion200k')
     parser.add_argument(
-        '--dataset_path', type=str, default='../imgcomsearch/CSSDataset/output')
+        '--dataset_path', type=str, default='/media/huynhtruc0309/335274A52EB9F27F/hcmus/thesis/data/Fashion200k')
     parser.add_argument('--model', type=str, default='tirg')
     parser.add_argument('--embed_dim', type=int, default=512)
     parser.add_argument('--learning_rate', type=float, default=1e-2)
@@ -291,6 +291,7 @@ def main():
         logger.add_text(k, str(opt.__dict__[k]))
 
     trainset, testset = load_dataset(opt)
+    print(trainset.get_all_texts()[0])
     model, optimizer = create_model_and_optimizer(
         opt, [t for t in trainset.get_all_texts()])
 
