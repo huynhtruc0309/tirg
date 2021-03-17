@@ -134,3 +134,7 @@ data/*
 
 
 runs/*
+checkpoints/*
+database.npy
+output/
+tirg_vocab_fashion200k.json

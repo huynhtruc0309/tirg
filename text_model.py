@@ -17,16 +17,20 @@
 import string
 import numpy as np
 import torch
+import torch.nn as nn
 
 
 class SimpleVocab(object):
 
-  def __init__(self):
+  def __init__(self, vocab=None):
     super(SimpleVocab, self).__init__()
-    self.word2id = {}
-    self.wordcount = {}
-    self.word2id['<UNK>'] = 0
-    self.wordcount['<UNK>'] = 9e9
+    if vocab:
+      self.word2id = vocab #ignore wordcount
+    else:
+      self.word2id = {}
+      self.wordcount = {}
+      self.word2id['<UNK>'] = 0
+      self.wordcount['<UNK>'] = 9e9
 
   def tokenize_text(self, text):
     text = text.encode('ascii', 'ignore').decode('ascii')
@@ -58,46 +62,35 @@ class SimpleVocab(object):
 class TextLSTMModel(torch.nn.Module):
 
   def __init__(self,
-               texts_to_build_vocab,
+               vocab_size,
                word_embed_dim=512,
                lstm_hidden_dim=512):
 
     super(TextLSTMModel, self).__init__()
 
-    self.vocab = SimpleVocab()
-    for text in texts_to_build_vocab:
-      self.vocab.add_text_to_vocab(text)
-    vocab_size = self.vocab.get_size()
-
     self.word_embed_dim = word_embed_dim
     self.lstm_hidden_dim = lstm_hidden_dim
-    self.embedding_layer = torch.nn.Embedding(vocab_size, word_embed_dim)
+    self.embedding_layer = nn.Embedding(vocab_size, word_embed_dim)
     self.lstm = torch.nn.LSTM(word_embed_dim, lstm_hidden_dim)
     self.fc_output = torch.nn.Sequential(
         torch.nn.Dropout(p=0.1),
         torch.nn.Linear(lstm_hidden_dim, lstm_hidden_dim),
     )
 
-  def forward(self, x):
-    """ input x: list of strings"""
-    if type(x) is list:
-      if type(x[0]) is str or type(x[0]) is unicode:
-        x = [self.vocab.encode_text(text) for text in x]
+  def forward(self, itexts, lengths):
+    '''input x: list of indexes. For examples: [[1, 918, 3, 4]]'''
+    # """ input x: list of strings"""
+    # if type(x) is list:
+    #   if type(x[0]) is str or type(x[0]) is unicode:
+    #     x = [self.vocab.encode_text(text) for text in x] #
 
-    assert type(x) is list
-    assert type(x[0]) is list
-    assert type(x[0][0]) is int
-    return self.forward_encoded_texts(x)
+    # assert type(x) is list      # list of strings, ['aaa', 'bbb']
+    # assert type(x[0]) is list   # []
+    # assert type(x[0][0]) is int
+    return self.forward_encoded_texts(itexts, lengths)
 
-  def forward_encoded_texts(self, texts):
-    # to tensor
-    lengths = [len(t) for t in texts]
-    itexts = torch.zeros((np.max(lengths), len(texts))).long()
-    for i in range(len(texts)):
-      itexts[:lengths[i], i] = torch.tensor(texts[i])
-
+  def forward_encoded_texts(self, itexts, lengths):
     # embed words
-    itexts = torch.autograd.Variable(itexts).cuda()
     etexts = self.embedding_layer(itexts)
 
     # lstm
@@ -105,7 +98,7 @@ class TextLSTMModel(torch.nn.Module):
 
     # get last output (using length)
     text_features = []
-    for i in range(len(texts)):
+    for i in range(etexts.size(1)):
       text_features.append(lstm_output[lengths[i] - 1, i, :])
 
     # output
@@ -117,6 +110,6 @@ class TextLSTMModel(torch.nn.Module):
     batch_size = etexts.shape[1]
     first_hidden = (torch.zeros(1, batch_size, self.lstm_hidden_dim),
                     torch.zeros(1, batch_size, self.lstm_hidden_dim))
-    first_hidden = (first_hidden[0].cuda(), first_hidden[1].cuda())
+    first_hidden = (first_hidden[0].to(etexts.device), first_hidden[1].to(etexts.device))
     lstm_output, last_hidden = self.lstm(etexts, first_hidden)
     return lstm_output, last_hidden

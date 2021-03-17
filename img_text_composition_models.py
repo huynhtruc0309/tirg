@@ -45,7 +45,7 @@ class ImgTextCompositionBase(torch.nn.Module):
   def extract_img_feature(self, imgs):
     raise NotImplementedError
 
-  def extract_text_feature(self, texts):
+  def extract_text_feature(self, texts, vocab):
     raise NotImplementedError
 
   def compose_img_text(self, imgs, texts):
@@ -86,16 +86,15 @@ class ImgTextCompositionBase(torch.nn.Module):
   def compute_batch_based_classification_loss_(self, mod_img1, img2):
     x = torch.mm(mod_img1, img2.transpose(0, 1))
     labels = torch.tensor(range(x.shape[0])).long()
-    labels = torch.autograd.Variable(labels).cuda()
+    labels = labels.to(x.device)
     return F.cross_entropy(x, labels)
 
 
 class ImgEncoderTextEncoderBase(ImgTextCompositionBase):
   """Base class for image and text encoder."""
 
-  def __init__(self, texts, embed_dim):
+  def __init__(self, vocab_size, embed_dim=512):
     super(ImgEncoderTextEncoderBase, self).__init__()
-
     # img model
     img_model = torchvision.models.resnet18(pretrained=True)
 
@@ -110,15 +109,15 @@ class ImgEncoderTextEncoderBase(ImgTextCompositionBase):
 
     # text model
     self.text_model = text_model.TextLSTMModel(
-        texts_to_build_vocab=texts,
+        vocab_size,
         word_embed_dim=embed_dim,
         lstm_hidden_dim=embed_dim)
 
   def extract_img_feature(self, imgs):
     return self.img_model(imgs)
 
-  def extract_text_feature(self, texts):
-    return self.text_model(texts)
+  def extract_text_feature(self, texts, lengths):
+    return self.text_model(texts, lengths)
 
 
 class SimpleModelImageOnly(ImgEncoderTextEncoderBase):
@@ -136,8 +135,8 @@ class SimpleModelTextOnly(ImgEncoderTextEncoderBase):
 class Concat(ImgEncoderTextEncoderBase):
   """Concatenation model."""
 
-  def __init__(self, texts, embed_dim):
-    super(Concat, self).__init__(texts, embed_dim)
+  def __init__(self, texts_to_build_vocab=None, built_vocab=None, embed_dim=512):
+    super(Concat, self).__init__(texts_to_build_vocab=None, built_vocab=None, embed_dim=512)
 
     # composer
     class Composer(torch.nn.Module):
@@ -175,8 +174,8 @@ class TIRG(ImgEncoderTextEncoderBase):
   CVPR 2019. arXiv:1812.07119
   """
 
-  def __init__(self, texts, embed_dim):
-    super(TIRG, self).__init__(texts, embed_dim)
+  def __init__(self, vocab_size, embed_dim=512):
+    super(TIRG, self).__init__(vocab_size, embed_dim=512)
 
     self.a = torch.nn.Parameter(torch.tensor([1.0, 10.0, 1.0, 1.0]))
     self.gated_feature_composer = torch.nn.Sequential(
@@ -187,9 +186,9 @@ class TIRG(ImgEncoderTextEncoderBase):
         torch.nn.Linear(2 * embed_dim, 2 * embed_dim), torch.nn.ReLU(),
         torch.nn.Linear(2 * embed_dim, embed_dim))
 
-  def compose_img_text(self, imgs, texts):
+  def compose_img_text(self, imgs, itexts, lengths):
     img_features = self.extract_img_feature(imgs)
-    text_features = self.extract_text_feature(texts)
+    text_features = self.extract_text_feature(itexts, lengths)
     return self.compose_img_text_features(img_features, text_features)
 
   def compose_img_text_features(self, img_features, text_features):
@@ -207,8 +206,8 @@ class TIRGLastConv(ImgEncoderTextEncoderBase):
   CVPR 2019. arXiv:1812.07119
   """
 
-  def __init__(self, texts, embed_dim):
-    super(TIRGLastConv, self).__init__(texts, embed_dim)
+  def __init__(self, texts_to_build_vocab=None, built_vocab=None, embed_dim=512):
+    super(TIRGLastConv, self).__init__(texts_to_build_vocab=None, built_vocab=None, embed_dim=512)
 
     self.a = torch.nn.Parameter(torch.tensor([1.0, 10.0, 1.0, 1.0]))
     self.mod2d = torch.nn.Sequential(

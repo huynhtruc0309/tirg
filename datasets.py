@@ -266,7 +266,7 @@ class Fashion200k(BaseDataset):
     file2imgid = {}
     for i, img in enumerate(self.imgs):
       file2imgid[img['file_path']] = i
-    with open(self.img_path + '/test_queries.txt') as f:
+    with open(self.img_path + 'test_queries.txt') as f:
       lines = f.readlines()
     self.test_queries = []
     for line in lines:

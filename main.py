@@ -41,7 +41,7 @@ def parse_opt():
     parser.add_argument('--comment', type=str, default='test_notebook')
     parser.add_argument('--dataset', type=str, default='fashion200k')
     parser.add_argument(
-        '--dataset_path', type=str, default='/media/huynhtruc0309/335274A52EB9F27F/hcmus/thesis/data/Fashion200k')
+        '--dataset_path', type=str, default='/media/huynhtruc0309/DATA/hcmus/thesis/data/Fashion200k')
     parser.add_argument('--model', type=str, default='tirg')
     parser.add_argument('--embed_dim', type=int, default=512)
     parser.add_argument('--learning_rate', type=float, default=1e-2)
@@ -149,7 +149,9 @@ def create_model_and_optimizer(opt, texts):
         print('Invalid model', opt.model)
         print('available: imgonly, textonly, concat, tirg or tirg_lastconv')
         sys.exit()
-    model = model.cuda()
+
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'  
+    model = model.to(device)
 
     # create optimizer
     params = []
@@ -228,10 +230,10 @@ def train_loop(opt, logger, trainset, testset, model, optimizer):
             assert type(data) is list
             img1 = np.stack([d['source_img_data'] for d in data])
             img1 = torch.from_numpy(img1).float()
-            img1 = torch.autograd.Variable(img1).cuda()
+            img1 = img1.to(model.device)
             img2 = np.stack([d['target_img_data'] for d in data])
             img2 = torch.from_numpy(img2).float()
-            img2 = torch.autograd.Variable(img2).cuda()
+            img2 = img2.to(model.device)
             mods = [str(d['mod']['str']) for d in data]
             mods = [t for t in mods]
 
@@ -291,7 +293,7 @@ def main():
         logger.add_text(k, str(opt.__dict__[k]))
 
     trainset, testset = load_dataset(opt)
-    print(trainset.get_all_texts()[0])
+    # print(trainset.get_all_texts()[0])
     model, optimizer = create_model_and_optimizer(
         opt, [t for t in trainset.get_all_texts()])
 
